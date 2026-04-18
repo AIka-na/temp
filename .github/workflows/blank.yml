@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_name:
-        description: '镜像名称 (例如: node:20-bullseye)'
+        description: '镜像名称'
         required: true
         type: string
         default: 'node:20-bullseye'
@@ -14,15 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull Docker image
-        run: docker pull ${{ github.event.inputs.image_name }}
-          
-      - name: Save Docker image
         run: |
-          SAFE_NAME=$(echo "${{ github.event.inputs.image_name }}" | tr '/:' '_')
-          docker save ${{ github.event.inputs.image_name }} -o ${SAFE_NAME}.tar
+          docker pull ${{ github.event.inputs.image_name }}
+          
+      - name: Sanitize Image Name
+        run: |
+          SAFE_NAME=$(echo "${{ github.event.inputs.image_name }}" | sed 's/[\/:]/_/g')
+          echo "SAFE_IMAGE_NAME=$SAFE_NAME" >> $GITHUB_ENV
+          
+      - name: Save Docker image to tar
+        run: |
+          docker save "${{ github.event.inputs.image_name }}" -o "${{ env.SAFE_IMAGE_NAME }}.tar"
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.image_name }}
+          name: ${{ env.SAFE_IMAGE_NAME }} # 这里也会变成 node_20-bullseye，完美避开非法字符
           path: "*.tar"
