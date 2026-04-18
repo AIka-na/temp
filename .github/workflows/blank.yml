@@ -1,0 +1,32 @@
+name: Download Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: '镜像名称'
+        required: true
+        default: 'node:20-bullseye'
+      image_tag:
+        description: '镜像标签'
+        required: true
+        default: 'latest'
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull Docker image
+        run: |
+          docker pull ${{ github.event.inputs.image_name }}
+          
+      - name: Save Docker image to tar
+        run: |
+          IMAGE_NAME=$(echo ${{ github.event.inputs.image_name }} | sed 's/\//_/g' | sed 's/:/_/g')
+          docker save ${{ github.event.inputs.image_name }} -o ${IMAGE_NAME}.tar
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: *.tar
